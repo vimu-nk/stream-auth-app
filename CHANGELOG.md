@@ -13,3 +13,12 @@
 -   NextAuth session management (JWT strategy)
 -   Protected dashboard page using `useSession`
 -   Proper file structure with `src/` directory
+
+## [0.1.1] - 2025-04-24
+
+### Fixed
+
+-   Added missing SessionProvider wrapper for useSession
+-   Corrected `use client` directive on dashboard page
+-   Resolved NextAuth dynamic route registration issue
+-   Fixed missing Schema import in Otp model
