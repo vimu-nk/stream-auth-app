@@ -38,6 +38,7 @@ export default function RegisterPage() {
 		if (res.ok) {
 			setUserId(data.userId);
 			setStep("otp");
+			setResendTimer(30);
 		} else {
 			setError(data.error || "Registration failed");
 		}

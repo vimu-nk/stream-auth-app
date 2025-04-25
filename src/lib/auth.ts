@@ -11,16 +11,21 @@ export const authOptions: AuthOptions = {
 			credentials: { identifier: {}, password: {} },
 			async authorize(credentials) {
 				await connectDB();
+
 				const { identifier, password } = credentials!;
 				const user = await User.findOne({
 					$or: [{ email: identifier }, { phone: identifier }],
 				});
-				if (
-					!user ||
-					!user.isVerified ||
-					!(await bcrypt.compare(password, user.password))
-				)
-					return null;
+
+				if (!user || !user.password) return null;
+
+				const isValid = await bcrypt.compare(password, user.password);
+				if (!isValid) return null;
+
+				if (!user.isVerified) {
+					throw new Error("PHONE_NOT_VERIFIED");
+				}
+
 				return {
 					id: user._id.toString(),
 					email: user.email,

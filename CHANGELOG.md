@@ -22,3 +22,19 @@
 -   Corrected `use client` directive on dashboard page
 -   Resolved NextAuth dynamic route registration issue
 -   Fixed missing Schema import in Otp model
+
+## [0.2.0] - 2025-04-25
+
+### Added
+
+-   Resend OTP functionality in registration
+-   30-second cooldown between OTP resends
+-   Maximum of 3 resend attempts per number per 24 hours
+-   Resend cooldown timer on frontend
+
+## [0.2.1] - 2025-04-25
+
+### Fixed
+
+-   Automatically resend OTP when an unverified user attempts to login
+-   Starts 30-second resend timer immediately after auto-sending OTP

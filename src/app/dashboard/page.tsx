@@ -17,7 +17,7 @@ export default function Dashboard() {
 	if (status === "loading") return <p>Loading...</p>;
 
 	return (
-		<div className="max-w-xl mx-auto mt-10">
+		<div className="max-w-xl mx-auto mt-10 text-center">
 			<h1 className="text-2xl font-bold">
 				Welcome, {session?.user?.email || session?.user?.phone}
 			</h1>
