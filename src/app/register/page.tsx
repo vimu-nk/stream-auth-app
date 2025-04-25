@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
@@ -11,7 +11,18 @@ export default function RegisterPage() {
 	const [step, setStep] = useState<"form" | "otp">("form");
 	const [userId, setUserId] = useState("");
 	const [error, setError] = useState("");
+	const [resendStatus, setResendStatus] = useState("");
+	const [resendTimer, setResendTimer] = useState(0);
 	const router = useRouter();
+
+	useEffect(() => {
+		if (resendTimer > 0) {
+			const interval = setInterval(() => {
+				setResendTimer((prev) => prev - 1);
+			}, 1000);
+			return () => clearInterval(interval);
+		}
+	}, [resendTimer]);
 
 	const handleRegister = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -44,6 +55,23 @@ export default function RegisterPage() {
 			router.push("/login");
 		} else {
 			setError(data.error || "Invalid OTP");
+		}
+	};
+
+	const resendOTP = async () => {
+		setResendStatus("");
+		const res = await fetch("/api/auth/resend-otp", {
+			method: "POST",
+			body: JSON.stringify({ phone }),
+			headers: { "Content-Type": "application/json" },
+		});
+
+		const data = await res.json();
+		if (res.ok) {
+			setResendStatus("OTP resent successfully");
+			setResendTimer(30);
+		} else {
+			setResendStatus(data.error || "Failed to resend OTP");
 		}
 	};
 
@@ -103,6 +131,18 @@ export default function RegisterPage() {
 					>
 						Verify OTP
 					</button>
+					<button
+						onClick={resendOTP}
+						className="text-blue-600 text-sm underline disabled:opacity-40"
+						disabled={resendTimer > 0}
+					>
+						{resendTimer > 0
+							? `Resend in ${resendTimer}s`
+							: "Resend Code"}
+					</button>
+					{resendStatus && (
+						<p className="text-sm text-gray-500">{resendStatus}</p>
+					)}
 				</div>
 			)}
 		</div>
