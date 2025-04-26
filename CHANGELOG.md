@@ -38,3 +38,12 @@
 
 -   Automatically resend OTP when an unverified user attempts to login
 -   Starts 30-second resend timer immediately after auto-sending OTP
+
+## [0.2.2] - 2025-04-25
+
+### Fixed
+
+-   Switched login to phone-only authentication
+-   Enforced unique constraint on phone and email
+-   Unified resend OTP behavior for login and registration
+-   Started resend timer immediately after login attempts for unverified users

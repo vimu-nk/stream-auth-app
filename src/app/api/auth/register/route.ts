@@ -7,11 +7,21 @@ import { sendOTP } from "@/lib/sendSMS";
 export async function POST(req: Request) {
 	const { email, password, phone } = await req.json();
 	await connectDB();
-	if (await User.findOne({ $or: [{ email }, { phone }] }))
+
+	const existingPhone = await User.findOne({ phone });
+	if (existingPhone) {
 		return new Response(
-			JSON.stringify({ error: "Email or phone already exists" }),
+			JSON.stringify({ error: "Phone number already in use" }),
 			{ status: 400 }
 		);
+	}
+
+	const existingEmail = await User.findOne({ email });
+	if (existingEmail) {
+		return new Response(JSON.stringify({ error: "Email already in use" }), {
+			status: 400,
+		});
+	}
 
 	const hashedPassword = await bcrypt.hash(password, 10);
 	const user = await User.create({

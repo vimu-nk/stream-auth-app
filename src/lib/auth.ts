@@ -14,7 +14,7 @@ export const authOptions: AuthOptions = {
 
 				const { identifier, password } = credentials!;
 				const user = await User.findOne({
-					$or: [{ email: identifier }, { phone: identifier }],
+					phone: identifier,
 				});
 
 				if (!user || !user.password) return null;
