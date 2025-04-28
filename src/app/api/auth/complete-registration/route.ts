@@ -13,7 +13,8 @@ export async function POST(req: Request) {
 			gender,
 			birthday,
 			whatsapp,
-			address,
+			uAddress,
+			mapAddress,
 			district,
 			email,
 			password,
@@ -21,44 +22,42 @@ export async function POST(req: Request) {
 
 		await connectDB();
 
-		const user = await User.findOne({ phone });
+		const existingPhone = await User.findOne({ phone });
+		const existingEmail = await User.findOne({ email });
 
-		if (!user) {
-			return new Response(JSON.stringify({ error: "User not found" }), {
-				status: 404,
-			});
-		}
-
-		if (!user.isVerified) {
+		if (existingPhone) {
 			return new Response(
-				JSON.stringify({ error: "Phone not verified yet" }),
+				JSON.stringify({ error: "Phone already registered" }),
 				{ status: 400 }
 			);
 		}
 
-		if (user.verificationLevel && user.verificationLevel >= 1) {
+		if (existingEmail) {
 			return new Response(
-				JSON.stringify({ error: "Registration already completed" }),
+				JSON.stringify({ error: "Email already registered" }),
 				{ status: 400 }
 			);
 		}
 
 		const hashedPassword = await bcrypt.hash(password, 10);
 
-		user.firstName = firstName;
-		user.lastName = lastName;
-		user.alYear = alYear;
-		user.nic = nic;
-		user.gender = gender;
-		user.birthday = new Date(birthday);
-		user.whatsapp = whatsapp;
-		user.address = address;
-		user.district = district;
-		user.email = email;
-		user.password = hashedPassword;
-		user.verificationLevel = 1; // Set as Phone Verified and Registered
-
-		await user.save();
+		const user = await User.create({
+			phone,
+			firstName,
+			lastName,
+			alYear,
+			nic,
+			gender,
+			birthday: new Date(birthday),
+			whatsapp,
+			uAddress,
+			mapAddress,
+			district,
+			email,
+			password: hashedPassword,
+			isVerified: true, // ✅ Because they already verified OTP
+			verificationLevel: 1, // ✅ Phone verified
+		});
 
 		return new Response(
 			JSON.stringify({ message: "Registration completed successfully" }),

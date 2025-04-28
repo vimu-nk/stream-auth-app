@@ -17,7 +17,8 @@ const userSchema = new Schema(
 		birthday: { type: Date }, // Autofilled from NIC
 
 		whatsapp: { type: String },
-		address: { type: String },
+		uAddress: { type: String },
+		mapAddress: { type: String },
 		district: { type: String },
 
 		// NIC Extracted Original Fields

@@ -18,7 +18,8 @@ export default function RegisterPage() {
 	const [gender, setGender] = useState("");
 	const [birthday, setBirthday] = useState("");
 	const [whatsapp, setWhatsapp] = useState("");
-	const [address, setAddress] = useState("");
+	const [uAddress, setUAddress] = useState("");
+	const [mapAddress, setMapAddress] = useState("");
 	const [district, setDistrict] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -101,7 +102,8 @@ export default function RegisterPage() {
 				gender,
 				birthday,
 				whatsapp,
-				address: "", // GPS/Map address field will be updated later
+				uAddress,
+				mapAddress,
 				district,
 				email,
 				password,
@@ -226,7 +228,7 @@ export default function RegisterPage() {
 					<select
 						value={alYear}
 						onChange={(e) => setAlYear(e.target.value)}
-						className="w-full p-2 border rounded"
+						className="w-full p-2 border rounde bg-black"
 						required
 					>
 						<option value="">Select A/L Year</option>
@@ -249,7 +251,7 @@ export default function RegisterPage() {
 						placeholder="Gender"
 						value={gender}
 						readOnly
-						className="w-full p-2 border rounded bg-gray-100"
+						className="w-full p-2 border rounded bg-black"
 					/>
 
 					<input
@@ -257,7 +259,7 @@ export default function RegisterPage() {
 						placeholder="Birthday"
 						value={birthday}
 						readOnly
-						className="w-full p-2 border rounded bg-gray-100"
+						className="w-full p-2 border rounded bg-black"
 					/>
 
 					<input
@@ -269,19 +271,29 @@ export default function RegisterPage() {
 						required
 					/>
 
-					<AddressPicker
-						onAddressSelect={(addr) => setAddress(addr)}
+					<input
+						type="text"
+						placeholder="Your Home Address"
+						value={uAddress}
+						onChange={(e) => setUAddress(e.target.value)}
+						className="w-full p-2 border rounded"
+						required
 					/>
-					{address && (
+
+					<h6>Select your address on the map</h6>
+					<AddressPicker
+						onAddressSelect={(addr) => setMapAddress(addr)}
+					/>
+					{mapAddress && (
 						<p className="text-sm text-gray-700">
-							Selected Address: {address}
+							Selected Map Address: {mapAddress}
 						</p>
 					)}
 
 					<select
 						value={district}
 						onChange={(e) => setDistrict(e.target.value)}
-						className="w-full p-2 border rounded"
+						className="w-full p-2 border rounded bg-black"
 						required
 					>
 						<option value="">Select District</option>

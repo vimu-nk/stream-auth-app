@@ -47,3 +47,75 @@
 -   Enforced unique constraint on phone and email
 -   Unified resend OTP behavior for login and registration
 -   Started resend timer immediately after login attempts for unverified users
+
+## [0.3.0] - 2025-04-28
+
+### Major Features
+
+-   Completed Full User Registration Flow:
+
+    -   Step 1: Phone number entry with OTP verification.
+    -   Step 2: Full form registration after phone verification.
+
+-   Added Fields in Registration:
+    -   First Name
+    -   Last Name
+    -   A/L Year (Dropdown)
+    -   NIC Number
+    -   Gender (Auto-calculated from NIC)
+    -   Birthday (Auto-calculated from NIC)
+    -   WhatsApp Number
+    -   Manual Address (user typed `uAddress`)
+    -   Map Address (Google Maps selected `mapAddress`)
+    -   District (Dropdown of 25 Sri Lankan districts)
+    -   Email
+    -   Password
+
+---
+
+### Google Maps Integration
+
+-   Integrated Google Maps JavaScript API.
+-   Added live address selection via clicking on a map.
+-   Auto-fetch formatted address using Google Geocoding API.
+
+---
+
+### Technical Improvements
+
+-   Migrated to `AdvancedMarkerElement`:
+
+    -   Future-proofed Google Maps marker rendering.
+    -   Removed `google.maps.Marker` deprecation warning.
+
+-   Optimized Google Maps LoadScript:
+
+    -   Fixed performance warning by using static `libraries` array.
+
+-   Improved MongoDB User Schema:
+
+    -   Added `uAddress` (manual input) and `mapAddress` (Google Maps selection).
+
+-   Stabilized API Routes:
+    -   `/api/auth/send-otp`
+    -   `/api/auth/verify-otp`
+    -   `/api/auth/complete-registration`
+
+---
+
+### Backend Security
+
+-   Secure password hashing with bcrypt.
+-   Strong validation to prevent duplicate phone and email registrations.
+
+---
+
+### Summary
+
+This release completes the secure user onboarding system,  
+laying the foundation for future features like:
+
+-   NIC photo uploads and Level 2 verification
+-   Admin dashboards
+-   Payment integrations
+-   Attendance tracking

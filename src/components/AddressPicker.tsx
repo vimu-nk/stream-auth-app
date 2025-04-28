@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import { useState, useEffect, useRef } from "react";
+import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
+
+const libraries: ("places" | "marker")[] = ["places", "marker"];
 
 interface AddressPickerProps {
 	onAddressSelect: (address: string) => void;
@@ -10,28 +12,53 @@ interface AddressPickerProps {
 export default function AddressPicker({ onAddressSelect }: AddressPickerProps) {
 	const { isLoaded } = useJsApiLoader({
 		googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-		libraries: ["places"],
+		libraries,
 	});
 
-	const [center, setCenter] = useState({ lat: 6.8972, lng: 79.8598 }); // Thummulla Junction
-	const [marker, setMarker] = useState(center);
+	const [center, setCenter] = useState({ lat: 7.8731, lng: 80.7718 });
+	const [markerPosition, setMarkerPosition] = useState(center);
+	const mapRef = useRef<google.maps.Map | null>(null);
+	const markerRef = useRef<any>(null); // We'll improve type later
 
 	useEffect(() => {
-		if (!isLoaded) return;
-	}, [isLoaded]);
+		if (!isLoaded || !mapRef.current) return;
+
+		// If marker already exists, remove it
+		if (markerRef.current) {
+			markerRef.current.setMap(null);
+		}
+
+		// Create a new AdvancedMarkerElement
+		markerRef.current = new window.google.maps.marker.AdvancedMarkerElement(
+			{
+				map: mapRef.current,
+				position: markerPosition,
+			}
+		);
+	}, [isLoaded, markerPosition]);
 
 	const handleClick = async (e: google.maps.MapMouseEvent) => {
 		if (!e.latLng) return;
 		const lat = e.latLng.lat();
 		const lng = e.latLng.lng();
-		setMarker({ lat, lng });
+		setMarkerPosition({ lat, lng });
 
-		const res = await fetch(
-			`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-		);
-		const data = await res.json();
-		const address = data.results[0]?.formatted_address || "";
-		onAddressSelect(address);
+		console.log("Marker clicked at:", lat, lng);
+
+		try {
+			const res = await fetch(
+				`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+			);
+			const data = await res.json();
+			console.log("Geocode response:", data);
+
+			const address = data.results?.[0]?.formatted_address || "";
+			console.log("Extracted address:", address);
+
+			onAddressSelect(address);
+		} catch (error) {
+			console.error("Error fetching address from Google Maps:", error);
+		}
 	};
 
 	if (!isLoaded) return <div>Loading Map...</div>;
@@ -41,9 +68,11 @@ export default function AddressPicker({ onAddressSelect }: AddressPickerProps) {
 			mapContainerStyle={{ width: "100%", height: "300px" }}
 			center={center}
 			zoom={8}
+			onLoad={(map) => (mapRef.current = map)}
 			onClick={handleClick}
+			options={{ mapId: "DEMO_MAP_ID" }}
 		>
-			<Marker position={marker} />
+			{/* No need to manually render AdvancedMarkerElement here */}
 		</GoogleMap>
 	);
 }
