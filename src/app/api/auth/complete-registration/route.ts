@@ -2,6 +2,16 @@ import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import bcrypt from "bcrypt";
 
+async function generateUniqueId(): Promise<number> {
+	let uniqueId;
+	let exists = true;
+	do {
+		uniqueId = Math.floor(1000000 + Math.random() * 9000000);
+		exists = await User.exists({ uniqueId });
+	} while (exists);
+	return uniqueId;
+}
+
 export async function POST(req: Request) {
 	try {
 		const {
@@ -24,6 +34,7 @@ export async function POST(req: Request) {
 
 		const existingPhone = await User.findOne({ phone });
 		const existingEmail = await User.findOne({ email });
+		const uniqueId = await generateUniqueId();
 
 		if (existingPhone) {
 			return new Response(
@@ -42,6 +53,7 @@ export async function POST(req: Request) {
 		const hashedPassword = await bcrypt.hash(password, 10);
 
 		const user = await User.create({
+			uniqueId,
 			phone,
 			firstName,
 			lastName,
@@ -55,8 +67,8 @@ export async function POST(req: Request) {
 			district,
 			email,
 			password: hashedPassword,
-			isVerified: true, // ✅ Because they already verified OTP
-			verificationLevel: 1, // ✅ Phone verified
+			isVerified: true,
+			verificationLevel: 1,
 		});
 
 		return new Response(

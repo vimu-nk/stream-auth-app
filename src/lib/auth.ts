@@ -8,21 +8,22 @@ export const authOptions: AuthOptions = {
 	providers: [
 		CredentialsProvider({
 			name: "Credentials",
-			credentials: { identifier: {}, password: {} },
+			credentials: {
+				identifier: {},
+				password: {},
+			},
 			async authorize(credentials) {
 				await connectDB();
-
 				const { identifier, password } = credentials!;
 				const user = await User.findOne({
-					phone: identifier,
+					$or: [{ email: identifier }, { phone: identifier }],
 				});
 
-				if (!user || !user.password) return null;
-
-				const isValid = await bcrypt.compare(password, user.password);
-				if (!isValid) return null;
-
-				if (!user.isVerified) {
+				if (
+					!user ||
+					!user.isVerified ||
+					!(await bcrypt.compare(password, user.password))
+				) {
 					throw new Error("PHONE_NOT_VERIFIED");
 				}
 
@@ -30,6 +31,8 @@ export const authOptions: AuthOptions = {
 					id: user._id.toString(),
 					email: user.email,
 					phone: user.phone,
+					firstName: user.firstName,
+					uniqueId: user.uniqueId,
 				};
 			},
 		}),
@@ -37,11 +40,20 @@ export const authOptions: AuthOptions = {
 	session: { strategy: "jwt" },
 	callbacks: {
 		async jwt({ token, user }) {
-			if (user) Object.assign(token, user);
+			if (user) {
+				token.id = user.id;
+				token.firstName = user.firstName;
+				token.uniqueId = user.uniqueId;
+			}
 			return token;
 		},
 		async session({ session, token }) {
-			session.user = token as any;
+			session.user = {
+				...session.user,
+				id: token.id,
+				firstName: token.firstName,
+				uniqueId: token.uniqueId,
+			};
 			return session;
 		},
 	},

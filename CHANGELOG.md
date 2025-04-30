@@ -119,3 +119,25 @@ laying the foundation for future features like:
 -   Admin dashboards
 -   Payment integrations
 -   Attendance tracking
+
+## [0.3.3] 2025-04-29
+
+### Features
+
+-   Assigned a **unique 7-digit ID** to each user at registration (`uniqueId`)
+-   Saved the ID in MongoDB and session object
+-   Personalized dashboard greeting using the user's `firstName`
+-   Displayed the user's unique ID on the dashboard
+
+### Technical Improvements
+
+-   Extended `next-auth` session and user types using `next-auth.d.ts`
+-   Injected `firstName` and `uniqueId` into JWT and session callbacks
+-   Resolved runtime bug: `Unexpected token '<'` caused by failed fetch to non-existent API
+-   Fixed TypeScript errors with strict type definitions for session
+
+### Result
+
+-   Each user now has a distinct system identity (`uniqueId`)
+-   Sessions are type-safe and include user-specific metadata
+-   Improved stability and developer confidence with cleaner typing
