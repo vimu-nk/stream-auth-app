@@ -141,3 +141,33 @@ laying the foundation for future features like:
 -   Each user now has a distinct system identity (`uniqueId`)
 -   Sessions are type-safe and include user-specific metadata
 -   Improved stability and developer confidence with cleaner typing
+
+## [0.4.0] 2025-05-01
+
+### Added
+
+-   NIC verification using Google Vision API (PDF417 scanning removed)
+-   Upload both front and back of NIC
+-   Extract 12-digit NIC number and compare with user-provided NIC
+-   Autofill gender and birthday based on NIC structure
+-   Full mismatch flow with manual NIC correction
+-   Separate endpoint `/api/user/update-nic` for manual override
+-   Auto-upgrade verification level to 2 on match
+-   Hide verification panel if verified
+-   Display user’s verification level next to unique ID on dashboard
+
+### Fixed
+
+-   Session payload now correctly includes `verificationLevel`, `uniqueId`, `firstName`
+-   TypeScript declaration for extended session via `next-auth.d.ts`
+-   Session refresh issue fixed with `window.location.reload()` workaround after verification
+
+### Removed
+
+-   All references to `orgNIC`, `orgBday`, `orgGender`, and `orgAddress`
+-   Removed `fullName` from schema and session
+
+### Notes
+
+-   Google Vision API is used to OCR English-only data
+-   System expects front image to contain NIC number, back image to contain address
