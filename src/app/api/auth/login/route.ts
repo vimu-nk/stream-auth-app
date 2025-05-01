@@ -40,7 +40,6 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// User is valid – you’ll authenticate using NextAuth, not here
 		return new Response(JSON.stringify({ message: "Login success" }), {
 			status: 200,
 		});

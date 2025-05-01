@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
 const userSchema = new Schema(
 	{
@@ -21,13 +21,6 @@ const userSchema = new Schema(
 		uAddress: { type: String },
 		mapAddress: { type: String },
 		district: { type: String },
-
-		// NIC Extracted Original Fields
-		orgNIC: { type: String },
-		orgBday: { type: Date },
-		orgGender: { type: String },
-		fullName: { type: String },
-		orgAddress: { type: String },
 
 		nicFrontImage: { type: String }, // File URL or path
 		nicBackImage: { type: String },

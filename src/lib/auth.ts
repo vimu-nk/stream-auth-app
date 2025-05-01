@@ -30,9 +30,9 @@ export const authOptions: AuthOptions = {
 				return {
 					id: user._id.toString(),
 					email: user.email,
-					phone: user.phone,
-					firstName: user.firstName,
 					uniqueId: user.uniqueId,
+					verificationLevel: user.verificationLevel,
+					firstName: user.firstName,
 				};
 			},
 		}),
@@ -42,18 +42,20 @@ export const authOptions: AuthOptions = {
 		async jwt({ token, user }) {
 			if (user) {
 				token.id = user.id;
-				token.firstName = user.firstName;
-				token.uniqueId = user.uniqueId;
+				token.uniqueId = user.uniqueId ?? null;
+				token.verificationLevel = user.verificationLevel ?? 0;
+				token.firstName = user.firstName ?? "";
 			}
 			return token;
 		},
 		async session({ session, token }) {
-			session.user = {
-				...session.user,
-				id: token.id,
-				firstName: token.firstName,
-				uniqueId: token.uniqueId,
-			};
+			if (session.user) {
+				session.user.id = token.id as string;
+				session.user.uniqueId = token.uniqueId as number;
+				session.user.verificationLevel =
+					token.verificationLevel as number;
+				session.user.firstName = token.firstName as string;
+			}
 			return session;
 		},
 	},
