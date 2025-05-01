@@ -18,7 +18,13 @@ export default function Dashboard() {
 
 	if (status === "loading") return <p>Loading...</p>;
 
-	const user = session?.user as any;
+	interface User {
+		firstName?: string;
+		uniqueId?: string;
+		verificationLevel?: number;
+	}
+
+	const user = session?.user as User;
 
 	return (
 		<div className="p-4">
@@ -32,11 +38,11 @@ export default function Dashboard() {
 
 			<NotificationPanel />
 
-			{user?.verificationLevel < 2 && (
-				<NICVerificationPanel currentLevel={user?.verificationLevel} />
+			{(user?.verificationLevel ?? 0) < 2 && (
+				<NICVerificationPanel
+					currentLevel={user?.verificationLevel ?? 0}
+				/>
 			)}
-
-			<pre>{JSON.stringify(session?.user, null, 2)}</pre>
 		</div>
 	);
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useAuthCredentials } from "@/context/AuthCredentialContext";
 
 export default function LoginPage() {
 	const [identifier, setIdentifier] = useState("");
@@ -13,6 +14,7 @@ export default function LoginPage() {
 	const [statusMessage, setStatusMessage] = useState("");
 	const router = useRouter();
 	const [resendTimer, setResendTimer] = useState(0);
+	const { setCredentials } = useAuthCredentials();
 
 	useEffect(() => {
 		if (resendTimer > 0) {
@@ -35,6 +37,7 @@ export default function LoginPage() {
 		});
 
 		if (res?.ok) {
+			setCredentials(identifier, password);
 			router.push("/dashboard");
 		} else if (res?.error === "PHONE_NOT_VERIFIED") {
 			setShowOtpPrompt(true);
@@ -68,6 +71,7 @@ export default function LoginPage() {
 
 		const data = await res.json();
 		if (res.ok) {
+			setCredentials(identifier, password);
 			setStatusMessage("Phone verified. Logging you in...");
 			const loginRes = await signIn("credentials", {
 				identifier,

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAuthCredentials } from "@/context/AuthCredentialContext";
+import { signIn } from "next-auth/react";
 
 export default function NICVerificationPanel({
 	currentLevel,
@@ -14,6 +16,7 @@ export default function NICVerificationPanel({
 	const [extractedNIC, setExtractedNIC] = useState("");
 	const [manualNIC, setManualNIC] = useState("");
 	const [verified, setVerified] = useState(currentLevel === 2);
+	const { identifier, password } = useAuthCredentials();
 
 	const handleVerify = async () => {
 		if (!front || !back) {
@@ -35,7 +38,12 @@ export default function NICVerificationPanel({
 		if (res.ok && data.verified) {
 			setVerified(true);
 			setStatus("✅ Verified. Reloading...");
-			window.location.reload();
+			await signIn("credentials", {
+				identifier,
+				password,
+				redirect: true,
+				callbackUrl: "/dashboard",
+			});
 		} else if (res.ok && data.nicMismatch) {
 			setNicMismatch(true);
 			setExtractedNIC(data.extractedNIC || "");

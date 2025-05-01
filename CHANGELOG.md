@@ -171,3 +171,21 @@ laying the foundation for future features like:
 
 -   Google Vision API is used to OCR English-only data
 -   System expects front image to contain NIC number, back image to contain address
+
+## [v0.4.1] 2025-05-02
+
+### Added
+
+-   Introduced `AuthCredentialProvider` using React Context to securely store user login credentials after successful authentication
+-   Wrapped app layout with `AuthCredentialProvider` to support global access
+-   Automatically re-signs user via `signIn("credentials")` after successful NIC verification using stored credentials
+
+### Fixed
+
+-   Avoided React error from calling `setState()` during render in `LoginPage`
+-   Wrapped `ClientProviders` inside `AuthCredentialProvider` in layout to ensure context availability across app
+
+### Improved
+
+-   Eliminated need to re-enter password manually after NIC mismatch and correction
+-   Ensured session is updated and user sees correct verification level immediately after NIC verification
