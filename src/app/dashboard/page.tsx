@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import NotificationPanel from "@/components/NotificationPanel";
 import NICVerificationPanel from "@/components/NICVerificationPanel";
+import { signOut } from "next-auth/react";
 
 export default function Dashboard() {
 	const { data: session, status } = useSession();
@@ -28,6 +29,19 @@ export default function Dashboard() {
 
 	return (
 		<div className="p-4">
+			<div className="relative">
+				<button
+					onClick={() =>
+						signOut({
+							redirect: true,
+							callbackUrl: "/login",
+						})
+					}
+					className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded"
+				>
+					Logout
+				</button>
+			</div>
 			<h1 className="text-2xl font-bold">
 				Welcome, {user?.firstName || "User"}
 			</h1>

@@ -189,3 +189,21 @@ laying the foundation for future features like:
 
 -   Eliminated need to re-enter password manually after NIC mismatch and correction
 -   Ensured session is updated and user sees correct verification level immediately after NIC verification
+
+## [v0.4.2] 2025-05-02
+
+### Added
+
+-   Logout button in dashboard using `signOut()` from `next-auth/react`
+-   Session expiration set to 24 hours (absolute, no sliding refresh)
+-   Middleware to protect `/dashboard` and other private routes
+
+### Changed
+
+-   Updated `middleware.ts` to only run on protected paths (`/dashboard/*`, etc.)
+-   Root route `/`, static files, and public assets now load without issues
+
+### Fixed
+
+-   Styling and assets not loading due to over-aggressive middleware matcher
+-   Public folder now fully accessible by excluding public URLs from protection
