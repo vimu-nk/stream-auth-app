@@ -3,26 +3,32 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AddressPicker from "@/components/AddressPicker";
+import { motion, AnimatePresence } from "framer-motion";
+import Toast from "@/components/Toast";
 
 export default function RegisterPage() {
+	const [step, setStep] = useState<"phone" | "otp" | "form1" | "form2">(
+		"phone"
+	);
 	const [phone, setPhone] = useState("");
 	const [otp, setOtp] = useState("");
-	const [step, setStep] = useState<"phone" | "otp" | "form">("phone");
-	const [error, setError] = useState("");
-	const [statusMessage, setStatusMessage] = useState("");
 	const [resendTimer, setResendTimer] = useState(0);
 	const [firstName, setFirstName] = useState("");
 	const [lastName, setLastName] = useState("");
-	const [alYear, setAlYear] = useState("");
 	const [nic, setNic] = useState("");
 	const [gender, setGender] = useState("");
 	const [birthday, setBirthday] = useState("");
+	const [email, setEmail] = useState("");
 	const [whatsapp, setWhatsapp] = useState("");
+	const [password, setPassword] = useState("");
+	const [alYear, setAlYear] = useState("");
+	const [institute, setInstitute] = useState("");
+	const [medium, setMedium] = useState("");
 	const [uAddress, setUAddress] = useState("");
 	const [mapAddress, setMapAddress] = useState("");
 	const [district, setDistrict] = useState("");
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
+	const [toastMessage, setToastMessage] = useState("");
+	const [toastType, setToastType] = useState<"success" | "error">("success");
 	const router = useRouter();
 
 	useEffect(() => {
@@ -35,62 +41,59 @@ export default function RegisterPage() {
 	}, [resendTimer]);
 
 	const sendOTP = async () => {
-		setError("");
 		const res = await fetch("/api/auth/send-otp", {
 			method: "POST",
 			body: JSON.stringify({ phone }),
 			headers: { "Content-Type": "application/json" },
 		});
-
 		const data = await res.json();
 		if (res.ok) {
-			setStatusMessage("OTP sent to your number");
+			setToastType("success");
+			setToastMessage("OTP sent to your number");
 			setResendTimer(30);
 			setStep("otp");
 		} else {
-			setError(data.error || "Failed to send OTP");
+			setToastType("error");
+			setToastMessage(data.error || "Failed to resend OTP");
 		}
 	};
 
 	const verifyOTP = async () => {
-		setError("");
 		const res = await fetch("/api/auth/verify-otp", {
 			method: "POST",
 			body: JSON.stringify({ phone, code: otp }),
 			headers: { "Content-Type": "application/json" },
 		});
-
 		const data = await res.json();
 		if (res.ok) {
-			setStatusMessage("Phone verified successfully.");
-			setStep("form"); // Move to full registration form next
+			setToastType("success");
+			setToastMessage("Phone verified successfully");
+			setStep("form1");
 		} else {
-			setError(data.error || "Invalid OTP");
+			setToastType("error");
+			setToastMessage(data.error || "Invalid OTP");
 		}
 	};
 
 	const resendOTP = async () => {
-		setStatusMessage("");
 		const res = await fetch("/api/auth/resend-otp", {
 			method: "POST",
 			body: JSON.stringify({ phone }),
 			headers: { "Content-Type": "application/json" },
 		});
-
 		const data = await res.json();
 		if (res.ok) {
-			setStatusMessage("OTP resent successfully");
+			setToastType("success");
+			setToastMessage("OTP resent successfully");
 			setResendTimer(30);
 		} else {
-			setStatusMessage(data.error || "Failed to resend OTP");
+			setToastType("error");
+			setToastMessage(data.error || "Failed to resend OTP");
 		}
 	};
 
 	const handleCompleteRegistration = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setError("");
-		setStatusMessage("");
-
 		const res = await fetch("/api/auth/complete-registration", {
 			method: "POST",
 			body: JSON.stringify({
@@ -107,39 +110,35 @@ export default function RegisterPage() {
 				district,
 				email,
 				password,
+				institute,
+				medium,
 			}),
 			headers: { "Content-Type": "application/json" },
 		});
-
 		const data = await res.json();
-
 		if (res.ok) {
-			setStatusMessage("Registration completed successfully!");
-			setTimeout(() => {
-				router.push("/login"); // Redirect to login after success
-			}, 1500);
+			setToastType("success");
+			setToastMessage("Registration completed successfully!");
+			setTimeout(() => router.push("/login"), 2000);
 		} else {
-			setError(data.error || "Registration failed.");
+			setToastType("error");
+			setToastMessage(data.error || "Registration failed");
 		}
 	};
 
 	const handleNicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = e.target.value;
 		setNic(value);
-
 		if (value.length === 12) {
 			const year = parseInt(value.substring(0, 4));
 			let dayNumber = parseInt(value.substring(4, 7));
 			let genderDetected = "Male";
-
 			if (dayNumber >= 500) {
 				dayNumber -= 500;
 				genderDetected = "Female";
 			}
-
 			const birthDate = new Date(year, 0);
 			birthDate.setDate(dayNumber);
-
 			setGender(genderDetected);
 			setBirthday(birthDate.toISOString().split("T")[0]);
 		} else {
@@ -148,208 +147,349 @@ export default function RegisterPage() {
 		}
 	};
 
+	const validateEmail = async () => {
+		if (!email) {
+			setToastType("error");
+			setToastMessage("Email is required");
+			return false;
+		}
+
+		try {
+			const res = await fetch("/api/auth/check-email", {
+				method: "POST",
+				body: JSON.stringify({ email }),
+				headers: { "Content-Type": "application/json" },
+			});
+			const data = await res.json();
+
+			if (!res.ok) {
+				setToastType("error");
+				setToastMessage(data.error || "Failed to validate email");
+				return false;
+			}
+
+			return true;
+		} catch {
+			setToastType("error");
+			setToastMessage("An error occurred while validating email");
+			return false;
+		}
+	};
+
 	return (
-		<div className="max-w-md mx-auto mt-10 space-y-4">
-			<h1 className="text-2xl font-bold">Register</h1>
-			{error && <p className="text-red-500">{error}</p>}
-			{statusMessage && (
-				<p className="text-sm text-gray-600">{statusMessage}</p>
-			)}
-
-			{step === "phone" && (
-				<div className="space-y-4">
-					<input
-						type="tel"
-						placeholder="Phone Number"
-						value={phone}
-						onChange={(e) => setPhone(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-					<button
-						onClick={sendOTP}
-						className="bg-blue-600 text-white px-4 py-2 rounded"
-					>
-						Send OTP
-					</button>
+		<div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center px-4 py-10 text-[#F2F2F2]">
+			<div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
+				<div className="hidden md:flex flex-col justify-center bg-[#1A1A1A] p-10 rounded-2xl">
+					<h2 className="text-4xl font-bold text-[#F2F2F2] mb-4">
+						COMBINED MAX
+					</h2>
+					<p className="text-[#AAABB8]">
+						Register to get started with our platform. We’ll guide
+						you every step of the way.
+					</p>
 				</div>
-			)}
-
-			{step === "otp" && (
-				<div className="space-y-4">
-					<input
-						type="text"
-						placeholder="Enter OTP"
-						value={otp}
-						onChange={(e) => setOtp(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-					<button
-						onClick={verifyOTP}
-						className="bg-green-600 text-white px-4 py-2 rounded"
-					>
-						Verify OTP
-					</button>
-					<button
-						onClick={resendOTP}
-						className="text-blue-600 text-sm underline disabled:opacity-40"
-						disabled={resendTimer > 0}
-					>
-						{resendTimer > 0
-							? `Resend in ${resendTimer}s`
-							: "Resend Code"}
-					</button>
-				</div>
-			)}
-
-			{step === "form" && (
-				<form
-					onSubmit={handleCompleteRegistration}
-					className="space-y-4"
-				>
-					<input
-						type="text"
-						placeholder="First Name"
-						value={firstName}
-						onChange={(e) => setFirstName(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-					<input
-						type="text"
-						placeholder="Last Name"
-						value={lastName}
-						onChange={(e) => setLastName(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-
-					<select
-						value={alYear}
-						onChange={(e) => setAlYear(e.target.value)}
-						className="w-full p-2 border rounde bg-black"
-						required
-					>
-						<option value="">Select A/L Year</option>
-						<option value="2025 AL">2025 AL</option>
-						<option value="2026 AL">2026 AL</option>
-						<option value="2027 AL">2027 AL</option>
-					</select>
-
-					<input
-						type="text"
-						placeholder="NIC Number"
-						value={nic}
-						onChange={handleNicChange}
-						className="w-full p-2 border rounded"
-						required
-					/>
-
-					<input
-						type="text"
-						placeholder="Gender"
-						value={gender}
-						readOnly
-						className="w-full p-2 border rounded bg-black"
-					/>
-
-					<input
-						type="text"
-						placeholder="Birthday"
-						value={birthday}
-						readOnly
-						className="w-full p-2 border rounded bg-black"
-					/>
-
-					<input
-						type="tel"
-						placeholder="WhatsApp Number"
-						value={whatsapp}
-						onChange={(e) => setWhatsapp(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-
-					<input
-						type="text"
-						placeholder="Your Home Address"
-						value={uAddress}
-						onChange={(e) => setUAddress(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-
-					<h6>Select your address on the map</h6>
-					<AddressPicker
-						onAddressSelect={(addr) => setMapAddress(addr)}
-					/>
-					{mapAddress && (
-						<p className="text-sm text-gray-700">
-							Selected Map Address: {mapAddress}
-						</p>
+				<div className="bg-[#1A1A1A] rounded-2xl p-8">
+					<h1 className="text-2xl font-bold text-center mb-4">
+						Register
+					</h1>
+					{toastMessage && (
+						<Toast
+							message={toastMessage}
+							type={toastType}
+							onClose={() => setToastMessage("")}
+						/>
 					)}
+					<AnimatePresence mode="wait">
+						<motion.div
+							key={step}
+							exit={{ opacity: 0, x: -20 }}
+							initial={{ opacity: 0, x: 20 }}
+							animate={{ opacity: 1, x: 0 }}
+							transition={{ duration: 0.3 }}
+						>
+							{step === "phone" && (
+								<div className="space-y-4">
+									<input
+										type="tel"
+										placeholder="Phone Number"
+										value={phone}
+										onChange={(e) =>
+											setPhone(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<button
+										onClick={sendOTP}
+										className="w-full bg-[#007BFF] hover:bg-[#0056b3] text-white py-2 rounded-lg transition"
+									>
+										Send OTP
+									</button>
+								</div>
+							)}
+							{step === "otp" && (
+								<div className="space-y-4">
+									<input
+										type="text"
+										placeholder="Enter OTP"
+										value={otp}
+										onChange={(e) => setOtp(e.target.value)}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<button
+										onClick={verifyOTP}
+										className="w-full bg-[#007BFF] hover:bg-[#0056b3] text-white py-2 rounded-lg transition"
+									>
+										Verify OTP
+									</button>
+									<button
+										onClick={resendOTP}
+										disabled={resendTimer > 0}
+										className="w-full text-sm text-[#AAABB8] underline disabled:opacity-40"
+									>
+										{resendTimer > 0
+											? `Resend in ${resendTimer}s`
+											: "Resend Code"}
+									</button>
+								</div>
+							)}
+							{step === "form1" && (
+								<div className="space-y-4">
+									<input
+										type="text"
+										placeholder="First Name"
+										value={firstName}
+										onChange={(e) =>
+											setFirstName(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<input
+										type="text"
+										placeholder="Last Name"
+										value={lastName}
+										onChange={(e) =>
+											setLastName(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<input
+										type="text"
+										placeholder="NIC Number"
+										value={nic}
+										onChange={handleNicChange}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<input
+										type="text"
+										placeholder="Gender"
+										value={gender}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										readOnly
+									/>
+									<input
+										type="text"
+										placeholder="Birthday"
+										value={birthday}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										readOnly
+									/>
+									<input
+										type="email"
+										placeholder="Email"
+										value={email}
+										onChange={(e) =>
+											setEmail(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<input
+										type="tel"
+										placeholder="WhatsApp Number"
+										value={whatsapp}
+										onChange={(e) =>
+											setWhatsapp(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<input
+										type="password"
+										placeholder="Password"
+										value={password}
+										onChange={(e) =>
+											setPassword(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<button
+										onClick={async () => {
+											const isEmailValid =
+												await validateEmail();
+											if (isEmailValid) {
+												setStep("form2");
+											}
+										}}
+										className="w-full bg-[#007BFF] hover:bg-[#0056b3] text-white py-2 rounded-lg transition"
+									>
+										Next
+									</button>
+								</div>
+							)}
 
-					<select
-						value={district}
-						onChange={(e) => setDistrict(e.target.value)}
-						className="w-full p-2 border rounded bg-black"
-						required
-					>
-						<option value="">Select District</option>
-						<option value="Colombo">Colombo</option>
-						<option value="Gampaha">Gampaha</option>
-						<option value="Kalutara">Kalutara</option>
-						<option value="Kandy">Kandy</option>
-						<option value="Matale">Matale</option>
-						<option value="Nuwara Eliya">Nuwara Eliya</option>
-						<option value="Galle">Galle</option>
-						<option value="Matara">Matara</option>
-						<option value="Hambantota">Hambantota</option>
-						<option value="Kurunegala">Kurunegala</option>
-						<option value="Puttalam">Puttalam</option>
-						<option value="Anuradhapura">Anuradhapura</option>
-						<option value="Polonnaruwa">Polonnaruwa</option>
-						<option value="Ratnapura">Ratnapura</option>
-						<option value="Kegalle">Kegalle</option>
-						<option value="Badulla">Badulla</option>
-						<option value="Monaragala">Monaragala</option>
-						<option value="Trincomale">Trincomale</option>
-						<option value="Batticaloa">Batticaloa</option>
-						<option value="Ampara">Ampara</option>
-						<option value="Jaffna">Jaffna</option>
-						<option value="Kilinochchi">Kilinochchi</option>
-						<option value="Vavuniya">Vavuniya</option>
-						<option value="Mannar">Mannar</option>
-						<option value="Mullaitivu">Mullaitivu</option>
-					</select>
-
-					<input
-						type="email"
-						placeholder="Email"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-
-					<input
-						type="password"
-						placeholder="Password"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						className="w-full p-2 border rounded"
-						required
-					/>
-
-					<button
-						type="submit"
-						className="bg-green-600 text-white px-4 py-2 rounded"
-					>
-						Complete Registration
-					</button>
-				</form>
-			)}
+							{step === "form2" && (
+								<div className="space-y-4">
+									<select
+										value={alYear}
+										onChange={(e) =>
+											setAlYear(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									>
+										<option value="" disabled hidden>
+											Select A/L Year
+										</option>
+										<option value="2025 AL">2025 AL</option>
+										<option value="2026 AL">2026 AL</option>
+										<option value="2027 AL">2027 AL</option>
+									</select>
+									<select
+										value={institute}
+										onChange={(e) =>
+											setInstitute(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									>
+										<option value="" disabled hidden>
+											Select Institute
+										</option>
+										<option value="SyZyGy - Nugegoda">
+											SyZyGy - Nugegoda
+										</option>
+										<option value="SyZyGy - Gampaha">
+											SyZyGy - Gampaha
+										</option>
+										<option value="iSM - Nugegoda">
+											iSM - Nugegoda
+										</option>
+										<option value="Wales - Moratuwa">
+											Wales - Moratuwa
+										</option>
+										<option value="Sarva - Panadura">
+											Sarva - Panadura
+										</option>
+										<option value="Sigma - Kirulapone">
+											Sigma - Kirulapone
+										</option>
+									</select>
+									<select
+										value={medium}
+										onChange={(e) =>
+											setMedium(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									>
+										<option value="" disabled hidden>
+											Select Medium
+										</option>
+										<option value="Sinhala Medium">
+											Sinhala Medium
+										</option>
+										<option value="English Medium">
+											English Medium
+										</option>
+									</select>
+									<input
+										type="text"
+										placeholder="Your Home Address"
+										value={uAddress}
+										onChange={(e) =>
+											setUAddress(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									/>
+									<div>
+										{/* Placeholder above the map */}
+										<p className="text-sm text-[#AAABB8] mb-2">
+											Pick your address on the map:
+										</p>
+										<AddressPicker
+											onAddressSelect={(addr) =>
+												setMapAddress(addr)
+											}
+										/>
+										{/* Display the fetched address */}
+										{mapAddress && (
+											<p className="mt-2 text-sm text-[#AAABB8]">
+												Selected Address: {mapAddress}
+											</p>
+										)}
+									</div>
+									<select
+										value={district}
+										onChange={(e) =>
+											setDistrict(e.target.value)
+										}
+										className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+										required
+									>
+										<option value="" disabled hidden>
+											Select District
+										</option>
+										{[
+											"Colombo",
+											"Gampaha",
+											"Kalutara",
+											"Kandy",
+											"Matale",
+											"Nuwara Eliya",
+											"Galle",
+											"Matara",
+											"Hambantota",
+											"Kurunegala",
+											"Puttalam",
+											"Anuradhapura",
+											"Polonnaruwa",
+											"Ratnapura",
+											"Kegalle",
+											"Badulla",
+											"Monaragala",
+											"Trincomalee",
+											"Batticaloa",
+											"Ampara",
+											"Jaffna",
+											"Kilinochchi",
+											"Vavuniya",
+											"Mannar",
+											"Mullaitivu",
+										].map((d) => (
+											<option key={d} value={d}>
+												{d}
+											</option>
+										))}
+									</select>
+									<button
+										onClick={handleCompleteRegistration}
+										className="w-full bg-[#28a745] hover:bg-[#218838] text-white py-2 rounded-lg transition"
+									>
+										Complete Registration
+									</button>
+								</div>
+							)}
+						</motion.div>
+					</AnimatePresence>
+				</div>
+			</div>
 		</div>
 	);
 }

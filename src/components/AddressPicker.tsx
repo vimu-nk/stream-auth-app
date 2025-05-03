@@ -15,17 +15,17 @@ export default function AddressPicker({ onAddressSelect }: AddressPickerProps) {
 		libraries,
 	});
 
-	const [center, setCenter] = useState({ lat: 7.8731, lng: 80.7718 });
+	const [center] = useState({ lat: 7.8731, lng: 80.7718 });
 	const [markerPosition, setMarkerPosition] = useState(center);
 	const mapRef = useRef<google.maps.Map | null>(null);
-	const markerRef = useRef<any>(null); // We'll improve type later
+	const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null); // Refers to AdvancedMarkerElement
 
 	useEffect(() => {
 		if (!isLoaded || !mapRef.current) return;
 
 		// If marker already exists, remove it
 		if (markerRef.current) {
-			markerRef.current.setMap(null);
+			markerRef.current.map = null;
 		}
 
 		// Create a new AdvancedMarkerElement
@@ -68,7 +68,9 @@ export default function AddressPicker({ onAddressSelect }: AddressPickerProps) {
 			mapContainerStyle={{ width: "100%", height: "300px" }}
 			center={center}
 			zoom={8}
-			onLoad={(map) => (mapRef.current = map)}
+			onLoad={(map) => {
+				mapRef.current = map;
+			}}
 			onClick={handleClick}
 			options={{ mapId: "DEMO_MAP_ID" }}
 		>

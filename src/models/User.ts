@@ -17,6 +17,9 @@ const userSchema = new Schema(
 		gender: { type: String }, // Autofilled from NIC
 		birthday: { type: Date }, // Autofilled from NIC
 
+		institute: String, // Add this field
+		medium: String, // Add this field
+
 		whatsapp: { type: String },
 		uAddress: { type: String },
 		mapAddress: { type: String },

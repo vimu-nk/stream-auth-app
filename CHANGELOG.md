@@ -207,3 +207,20 @@ laying the foundation for future features like:
 
 -   Styling and assets not loading due to over-aggressive middleware matcher
 -   Public folder now fully accessible by excluding public URLs from protection
+
+## [0.5.0] - 2025-05-04
+
+### Added
+
+-   Updated UI with animations.
+-   Placeholder text above the map in the address picker to guide users.
+-   Display of the selected address below the map in the registration form.
+
+### Changed
+
+-   Improved the user experience for the address picker in the registration form.
+-   Validated email before proceeding to the complete registration step.
+
+### Fixed
+
+-   Ensured dropdown placeholders are not selectable in the registration form.
