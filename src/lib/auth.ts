@@ -24,7 +24,7 @@ export const authOptions: AuthOptions = {
 					!user.isVerified ||
 					!(await bcrypt.compare(password, user.password))
 				) {
-					throw new Error("PHONE_NOT_VERIFIED");
+					throw new Error("Invalid credentials");
 				}
 
 				return {
@@ -39,10 +39,10 @@ export const authOptions: AuthOptions = {
 	],
 	session: {
 		strategy: "jwt",
-		maxAge: 60 * 60 * 3, // 1 hour
+		maxAge: 60 * 60 * 3, // 3 hours
 	},
 	jwt: {
-		maxAge: 60 * 60 * 3, // 1 hour
+		maxAge: 60 * 60 * 3, // 3 hours
 	},
 	callbacks: {
 		async jwt({ token, user }) {
@@ -61,6 +61,10 @@ export const authOptions: AuthOptions = {
 				session.user.verificationLevel =
 					token.verificationLevel as number;
 				session.user.firstName = token.firstName as string;
+				// Add email if not already present (might be redundant but ensures it's there)
+				if (token.email) {
+					session.user.email = token.email as string;
+				}
 			}
 			return session;
 		},

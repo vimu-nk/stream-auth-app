@@ -2,132 +2,239 @@
 
 import { useState } from "react";
 import { useAuthCredentials } from "@/context/AuthCredentialContext";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+
+interface NICVerificationPanelProps {
+	currentLevel: number;
+}
 
 export default function NICVerificationPanel({
 	currentLevel,
-}: {
-	currentLevel: number;
-}) {
-	const [front, setFront] = useState<File | null>(null);
-	const [back, setBack] = useState<File | null>(null);
-	const [status, setStatus] = useState("");
-	const [nicMismatch, setNicMismatch] = useState(false);
-	const [extractedNIC, setExtractedNIC] = useState("");
-	const [manualNIC, setManualNIC] = useState("");
-	const [verified, setVerified] = useState(currentLevel === 2);
+}: NICVerificationPanelProps) {
+	const [frontFile, setFrontFile] = useState<File | null>(null);
+	const [backFile, setBackFile] = useState<File | null>(null);
+	const [uploading, setUploading] = useState(false);
+	const [message, setMessage] = useState("");
+	const [messageType, setMessageType] = useState<"success" | "error">(
+		"success"
+	);
+	const { data: session } = useSession();
+	// Get the stored auth credentials for auto re-signin
 	const { identifier, password } = useAuthCredentials();
 
-	const handleVerify = async () => {
-		if (!front || !back) {
-			setStatus("Please upload both images.");
+	// If user is already verified (level 2), don't render the panel
+	if (currentLevel >= 2) {
+		return null;
+	}
+
+	const handleFrontFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files && e.target.files[0]) {
+			setFrontFile(e.target.files[0]);
+		}
+	};
+
+	const handleBackFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files && e.target.files[0]) {
+			setBackFile(e.target.files[0]);
+		}
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		if (!frontFile || !backFile) {
+			setMessage("Please select both front and back images of your NIC");
+			setMessageType("error");
 			return;
 		}
 
+		if (!session?.user) {
+			setMessage("You must be logged in to verify your identity");
+			setMessageType("error");
+			return;
+		}
+
+		setUploading(true);
+		setMessage("");
+
+		// Create a FormData object to send both files
 		const formData = new FormData();
-		formData.append("front", front);
-		formData.append("back", back);
+		formData.append("front", frontFile);
+		formData.append("back", backFile);
 
-		const res = await fetch("/api/user/verify-nic", {
-			method: "POST",
-			body: formData,
-		});
+		try {
+			console.log("Submitting verification with session:", session.user);
 
-		const data = await res.json();
-
-		if (res.ok && data.verified) {
-			setVerified(true);
-			setStatus("✅ Verified. Reloading...");
-			await signIn("credentials", {
-				identifier,
-				password,
-				redirect: true,
-				callbackUrl: "/dashboard",
+			const response = await fetch("/api/verification/upload-nic", {
+				method: "POST",
+				body: formData,
 			});
-		} else if (res.ok && data.nicMismatch) {
-			setNicMismatch(true);
-			setExtractedNIC(data.extractedNIC || "");
-			setManualNIC(data.extractedNIC || "");
-			setStatus("NIC number mismatch. Please confirm or correct.");
-		} else {
-			setStatus(`❌ ${data.error}`);
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				console.error("Verification failed:", data);
+				throw new Error(data.error || "Upload failed");
+			}
+
+			if (data.nicMismatch) {
+				setMessage("NIC number mismatch. Please check and try again.");
+				setMessageType("error");
+			} else if (data.verified) {
+				setMessage(
+					"ID verified successfully! Your account has been upgraded."
+				);
+				setMessageType("success");
+
+				// Log credentials for debugging (remove in production)
+				console.log(
+					"Re-signing in with credentials available:",
+					!!identifier,
+					!!password
+				);
+
+				// Make sure we have credentials before attempting to re-sign in
+				if (identifier && password) {
+					try {
+						// First set a flag to indicate we're in the re-signin process
+						setUploading(true); // Keep the UI showing "loading" state
+						setMessage(
+							"Verification successful! Refreshing your session..."
+						);
+
+						// First log out the user
+						await signIn("credentials", {
+							identifier,
+							password,
+							redirect: false, // Prevent redirect to avoid page reload
+						});
+
+						// This will redirect to dashboard with a fresh session
+					} catch (error) {
+						console.error(
+							"Error during authentication refresh:",
+							error
+						);
+						setMessage(
+							"Verification successful, but session refresh failed. Please log out and log in again."
+						);
+						setUploading(false);
+					}
+				} else {
+					// No credentials available
+					console.warn(
+						"No auth credentials available for auto re-sign in"
+					);
+					setMessage(
+						"Verification successful! Please log out and log in again to see the changes."
+					);
+					setTimeout(() => window.location.reload(), 2000);
+				}
+			}
+
+			setFrontFile(null);
+			setBackFile(null);
+
+			// Reset the file inputs
+			const frontFileInput = document.getElementById(
+				"nicFrontFile"
+			) as HTMLInputElement;
+			const backFileInput = document.getElementById(
+				"nicBackFile"
+			) as HTMLInputElement;
+			if (frontFileInput) frontFileInput.value = "";
+			if (backFileInput) backFileInput.value = "";
+		} catch (error) {
+			console.error("Verification error:", error);
+			setMessage(
+				error instanceof Error ? error.message : "Upload failed"
+			);
+			setMessageType("error");
+		} finally {
+			setUploading(false);
 		}
 	};
-
-	const handleNICUpdate = async () => {
-		if (!/^\d{12}$/.test(manualNIC)) {
-			setStatus("NIC must be 12 digits.");
-			return;
-		}
-
-		const res = await fetch("/api/user/update-nic", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ correctedNIC: manualNIC }),
-		});
-
-		const data = await res.json();
-
-		if (res.ok) {
-			setStatus("NIC updated. Please re-upload images.");
-			setNicMismatch(false);
-			setFront(null);
-			setBack(null);
-			setExtractedNIC("");
-		} else {
-			setStatus(`❌ ${data.error}`);
-		}
-	};
-
-	if (verified) return null;
 
 	return (
-		<div className="p-4 bg-white rounded shadow space-y-4">
-			<h2 className="text-lg font-semibold">NIC Verification</h2>
+		<div className="bg-[#1A1A1A] rounded-2xl p-8">
+			<div className="mb-4">
+				<h2 className="text-xl font-semibold text-[#F0F0F0]">
+					ID Verification
+				</h2>
+				<p className="text-[#AAABB8] mt-1">
+					Upload your NIC to verify your identity and unlock
+					additional features
+				</p>
+			</div>
 
-			<input
-				type="file"
-				accept="image/*"
-				onChange={(e) => setFront(e.target.files?.[0] || null)}
-			/>
-			<label className="text-sm">NIC Front</label>
+			<div className="bg-[#151515] rounded-xl p-6 border border-[#2a2a2a]">
+				<form onSubmit={handleSubmit}>
+					<div className="mb-4">
+						<label
+							htmlFor="nicFrontFile"
+							className="block text-[#AAABB8] text-sm mb-2"
+						>
+							Upload the front side of your National Identity Card
+						</label>
+						<input
+							type="file"
+							id="nicFrontFile"
+							accept="image/*"
+							onChange={handleFrontFileChange}
+							className="block w-full text-sm text-[#AAABB8] file:mr-4 file:py-2 file:px-4 
+              file:rounded-lg file:border-0 file:text-sm file:font-medium
+              file:bg-[#7A5FFF] file:text-white hover:file:bg-[#6a52e5]"
+						/>
+						{frontFile && (
+							<p className="mt-2 text-sm text-[#AAABB8]">
+								Front side: {frontFile.name}
+							</p>
+						)}
+					</div>
 
-			<input
-				type="file"
-				accept="image/*"
-				onChange={(e) => setBack(e.target.files?.[0] || null)}
-			/>
-			<label className="text-sm">NIC Back</label>
+					<div className="mb-4">
+						<label
+							htmlFor="nicBackFile"
+							className="block text-[#AAABB8] text-sm mb-2"
+						>
+							Upload the back side of your National Identity Card
+						</label>
+						<input
+							type="file"
+							id="nicBackFile"
+							accept="image/*"
+							onChange={handleBackFileChange}
+							className="block w-full text-sm text-[#AAABB8] file:mr-4 file:py-2 file:px-4 
+              file:rounded-lg file:border-0 file:text-sm file:font-medium
+              file:bg-[#7A5FFF] file:text-white hover:file:bg-[#6a52e5]"
+						/>
+						{backFile && (
+							<p className="mt-2 text-sm text-[#AAABB8]">
+								Back side: {backFile.name}
+							</p>
+						)}
+					</div>
 
-			<button
-				onClick={handleVerify}
-				className="bg-blue-600 text-white px-4 py-2 rounded"
-			>
-				Verify NIC
-			</button>
-
-			{nicMismatch && (
-				<div className="space-y-2">
-					<p className="text-sm text-yellow-700">
-						Extracted NIC: <strong>{extractedNIC}</strong>
-					</p>
-					<input
-						type="text"
-						value={manualNIC}
-						onChange={(e) => setManualNIC(e.target.value)}
-						className="w-full p-2 border rounded"
-						placeholder="Enter correct NIC number"
-					/>
+					{message && (
+						<div
+							className={`p-3 rounded-lg mb-4 ${
+								messageType === "success"
+									? "bg-[#00C896]/10 text-[#00C896]"
+									: "bg-[#FF3B3F]/10 text-[#FF3B3F]"
+							}`}
+						>
+							{message}
+						</div>
+					)}
 					<button
-						onClick={handleNICUpdate}
-						className="bg-green-600 text-white px-4 py-2 rounded"
+						type="submit"
+						className="bg-[#1E90FF] hover:bg-[#1a7ad9] text-[#F0F0F0] px-4 py-2 rounded-lg transition disabled:opacity-70 disabled:cursor-not-allowed"
+						disabled={uploading}
 					>
-						Confirm & Update
+						{uploading ? "Uploading..." : "Verify Identity"}
 					</button>
-				</div>
-			)}
-
-			{status && <p className="text-sm mt-2">{status}</p>}
+				</form>
+			</div>
 		</div>
 	);
 }

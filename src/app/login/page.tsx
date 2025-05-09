@@ -1,168 +1,118 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthCredentials } from "@/context/AuthCredentialContext";
+import { signIn } from "next-auth/react"; // Import signIn function
+import Toast from "@/components/Toast";
 
 export default function LoginPage() {
-	const [identifier, setIdentifier] = useState("");
+	const [identifier, setIdentifier] = useState(""); // Can be email or phone
 	const [password, setPassword] = useState("");
-	const [otp, setOtp] = useState("");
-	const [showOtpPrompt, setShowOtpPrompt] = useState(false);
-	const [error, setError] = useState("");
-	const [statusMessage, setStatusMessage] = useState("");
+	const [toastMessage, setToastMessage] = useState("");
+	const [toastType, setToastType] = useState<"success" | "error">("success");
+	const [isLoading, setIsLoading] = useState(false); // Add loading state
 	const router = useRouter();
-	const [resendTimer, setResendTimer] = useState(0);
-	const { setCredentials } = useAuthCredentials();
 
-	useEffect(() => {
-		if (resendTimer > 0) {
-			const interval = setInterval(() => {
-				setResendTimer((prev) => prev - 1);
-			}, 1000);
-			return () => clearInterval(interval);
-		}
-	}, [resendTimer]);
+	const handleCloseToast = () => setToastMessage("");
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setError("");
-		setStatusMessage("");
+		setIsLoading(true);
 
-		const res = await signIn("credentials", {
-			identifier,
-			password,
-			redirect: false,
-		});
-
-		if (res?.ok) {
-			setCredentials(identifier, password);
-			router.push("/dashboard");
-		} else if (res?.error === "PHONE_NOT_VERIFIED") {
-			setShowOtpPrompt(true);
-			const resendRes = await fetch("/api/auth/resend-otp", {
-				method: "POST",
-				body: JSON.stringify({ phone: identifier }),
-				headers: { "Content-Type": "application/json" },
-			});
-
-			const data = await resendRes.json();
-
-			if (resendRes.ok) {
-				setStatusMessage(
-					"Phone not verified. OTP sent to your number."
-				);
-				setResendTimer(30);
-			} else {
-				setStatusMessage(data.error || "Failed to send OTP.");
-			}
-		} else {
-			setError("Invalid credentials or login failed.");
-		}
-	};
-
-	const handleOtpVerify = async () => {
-		const res = await fetch("/api/auth/verify-otp", {
-			method: "POST",
-			body: JSON.stringify({ phone: identifier, code: otp }),
-			headers: { "Content-Type": "application/json" },
-		});
-
-		const data = await res.json();
-		if (res.ok) {
-			setCredentials(identifier, password);
-			setStatusMessage("Phone verified. Logging you in...");
-			const loginRes = await signIn("credentials", {
+		try {
+			// Use NextAuth's signIn method instead of custom fetch
+			const result = await signIn("credentials", {
 				identifier,
 				password,
 				redirect: false,
 			});
-			if (loginRes?.ok) {
-				router.push("/dashboard");
-			} else {
-				setError("Login failed after verification.");
+
+			if (result?.error) {
+				setToastMessage(result.error || "Invalid credentials");
+				setToastType("error");
+				setIsLoading(false);
+				return;
 			}
-		} else {
-			setError(data.error || "Invalid OTP");
-		}
-	};
 
-	const resendOTP = async () => {
-		setStatusMessage("");
-		const res = await fetch("/api/auth/resend-otp", {
-			method: "POST",
-			body: JSON.stringify({ phone: identifier }),
-			headers: { "Content-Type": "application/json" },
-		});
+			// Success case
+			setToastMessage("Login successful! Redirecting...");
+			setToastType("success");
 
-		const data = await res.json();
-		if (res.ok) {
-			setStatusMessage("OTP resent successfully");
-			setResendTimer(30);
-		} else {
-			setStatusMessage(data.error || "Failed to resend OTP");
+			// Redirect to dashboard
+			router.push("/dashboard");
+			router.refresh(); // Force refresh to ensure session is updated
+		} catch {
+			setToastMessage("An error occurred. Please try again.");
+			setToastType("error");
+			setIsLoading(false);
 		}
 	};
 
 	return (
-		<div className="max-w-md mx-auto mt-10 space-y-4">
-			<h1 className="text-2xl font-bold">Login</h1>
-			{error && <p className="text-red-500">{error}</p>}
-			{statusMessage && (
-				<p className="text-sm text-gray-600">{statusMessage}</p>
-			)}
-
-			{!showOtpPrompt ? (
-				<form onSubmit={handleLogin} className="space-y-4">
-					<input
-						type="text"
-						placeholder="Email or Phone"
-						value={identifier}
-						onChange={(e) => setIdentifier(e.target.value)}
-						required
-						className="w-full p-2 border rounded"
-					/>
-					<input
-						type="password"
-						placeholder="Password"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						required
-						className="w-full p-2 border rounded"
-					/>
-					<button
-						type="submit"
-						className="bg-green-600 text-white px-4 py-2 rounded"
-					>
-						Login
-					</button>
-				</form>
-			) : (
-				<div className="space-y-4">
-					<input
-						type="text"
-						placeholder="Enter OTP"
-						value={otp}
-						onChange={(e) => setOtp(e.target.value)}
-						className="w-full p-2 border rounded"
-					/>
-					<button
-						onClick={handleOtpVerify}
-						className="bg-blue-600 text-white px-4 py-2 rounded"
-					>
-						Verify OTP & Login
-					</button>
-					<button
-						onClick={resendOTP}
-						className="text-blue-600 text-sm underline disabled:opacity-40"
-						disabled={resendTimer > 0}
-					>
-						{resendTimer > 0
-							? `Resend in ${resendTimer}s`
-							: "Resend Code"}
-					</button>
+		<div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center px-4 py-10 text-[#F2F2F2]">
+			<div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
+				{/* Branding/Description Section */}
+				<div className="hidden md:flex flex-col justify-center bg-[#1A1A1A] p-10 rounded-2xl">
+					<h2 className="text-4xl font-bold text-[#F2F2F2] mb-4">
+						Welcome Back
+					</h2>
+					<p className="text-[#AAABB8]">
+						Log in to access your account and continue where you
+						left off.
+					</p>
 				</div>
+
+				{/* Login Form Section */}
+				<div className="bg-[#1A1A1A] rounded-2xl p-8">
+					<h1 className="text-2xl font-bold text-center mb-4">
+						Login
+					</h1>
+					<form onSubmit={handleLogin} className="space-y-4">
+						<input
+							type="text"
+							placeholder="Email or Phone"
+							value={identifier}
+							onChange={(e) => setIdentifier(e.target.value)}
+							className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+							required
+							disabled={isLoading}
+						/>
+						<input
+							type="password"
+							placeholder="Password"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							className="w-full px-4 py-2 bg-[#0D0D0D] text-white rounded-lg border border-[#AAABB8]"
+							required
+							disabled={isLoading}
+						/>
+						<button
+							type="submit"
+							className="w-full bg-[#007BFF] hover:bg-[#0056b3] text-white py-2 rounded-lg transition disabled:bg-[#0056b3] disabled:opacity-70"
+							disabled={isLoading}
+						>
+							{isLoading ? "Logging in..." : "Log In"}
+						</button>
+					</form>
+					<p className="text-sm text-center text-[#AAABB8] mt-4">
+						Don&apos;t have an account?{" "}
+						<a
+							href="/register"
+							className="text-[#007BFF] hover:underline"
+						>
+							Register here
+						</a>
+					</p>
+				</div>
+			</div>
+
+			{/* Toast Component */}
+			{toastMessage && (
+				<Toast
+					message={toastMessage}
+					type={toastType}
+					onClose={handleCloseToast}
+				/>
 			)}
 		</div>
 	);

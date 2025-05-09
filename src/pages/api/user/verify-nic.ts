@@ -4,8 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import formidable from "formidable";
-import path from "path";
 import vision from "@google-cloud/vision";
+import { ensureTmpDir, TMP_DIR, deleteTmpFile } from "@/lib/tmpFileManager";
 
 export const config = {
 	api: {
@@ -34,10 +34,13 @@ export default async function handler(
 
 	await connectDB();
 
+	// Ensure tmp directory exists
+	ensureTmpDir();
+
 	const form = formidable({
 		multiples: true,
 		keepExtensions: true,
-		uploadDir: path.join(process.cwd(), "tmp"),
+		uploadDir: TMP_DIR,
 	});
 
 	const { files } = await new Promise<{
@@ -76,5 +79,9 @@ export default async function handler(
 		return res.status(200).json({ verified: true, level: 2 });
 	} catch {
 		return res.status(500).json({ error: "NIC verification failed" });
+	} finally {
+		// Clean up temporary files
+		if (front && front.filepath) deleteTmpFile(front.filepath);
+		if (back && back.filepath) deleteTmpFile(back.filepath);
 	}
 }

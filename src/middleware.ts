@@ -10,7 +10,9 @@ export async function middleware(req: NextRequest) {
 
 	// Allow public paths
 	const isPublic = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
-	if (isPublic) return NextResponse.next();
+	if (isPublic) {
+		return NextResponse.next();
+	}
 
 	// If no token and accessing a protected route, redirect to login
 	if (!token) {

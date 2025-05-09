@@ -4,9 +4,9 @@ import bcrypt from "bcrypt";
 
 export async function POST(req: Request) {
 	try {
-		const { email, password } = await req.json();
+		const { identifier, password } = await req.json();
 
-		if (!email || !password) {
+		if (!identifier || !password) {
 			return new Response(
 				JSON.stringify({ error: "Missing credentials" }),
 				{ status: 400 }
@@ -15,7 +15,11 @@ export async function POST(req: Request) {
 
 		await connectDB();
 
-		const user = await User.findOne({ email });
+		// Check if identifier is an email or phone
+		const isEmail = identifier.includes("@");
+		const user = await User.findOne(
+			isEmail ? { email: identifier } : { phone: identifier }
+		);
 
 		if (!user) {
 			return new Response(
@@ -44,6 +48,7 @@ export async function POST(req: Request) {
 			status: 200,
 		});
 	} catch (error) {
+		console.error("Error during login:", error);
 		return new Response(JSON.stringify({ error: "Server error" }), {
 			status: 500,
 		});
