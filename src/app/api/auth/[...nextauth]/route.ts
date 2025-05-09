@@ -16,59 +16,29 @@ const handler = NextAuth({
 				if (!credentials?.identifier || !credentials?.password) {
 					throw new Error("Missing credentials");
 				}
-
 				await connectDB();
-
-				// Check if identifier is an email or phone
-				const isEmail = credentials.identifier.includes("@");
-				const user = await User.findOne(
-					isEmail
-						? { email: credentials.identifier }
-						: { phone: credentials.identifier }
-				);
-
-				if (!user) {
+				const user = await User.findOne({
+					$or: [
+						{ email: credentials.identifier },
+						{ phone: credentials.identifier },
+					],
+				});
+				if (!user || !(await bcrypt.compare(credentials.password, user.password))) {
 					throw new Error("Invalid credentials");
 				}
-
-				const isMatch = await bcrypt.compare(
-					credentials.password,
-					user.password
-				);
-
-				if (!isMatch) {
-					throw new Error("Invalid credentials");
-				}
-
-				if (!user.isVerified) {
-					throw new Error("Phone not verified");
-				}
-
-				// Return user data that should be stored in the session
-				return {
-					id: user._id.toString(),
-					firstName: user.firstName,
-					lastName: user.lastName,
-					email: user.email,
-					uniqueId: user.uniqueId || user._id.toString(),
-					verificationLevel: user.verificationLevel || 0,
-				};
+				return { id: user._id.toString(), email: user.email };
 			},
 		}),
 	],
-	session: {
-		strategy: "jwt",
-		maxAge: 24 * 60 * 60, // 24 hours
-	},
+	secret: process.env.NEXTAUTH_SECRET,
+	session: { strategy: "jwt" },
 	callbacks: {
 		async jwt({ token, user }) {
-			if (user) {
-				token.user = user;
-			}
+			if (user) token.id = user.id;
 			return token;
 		},
 		async session({ session, token }) {
-			session.user = token.user as typeof session.user;
+			session.user = { id: token.id as string };
 			return session;
 		},
 	},
