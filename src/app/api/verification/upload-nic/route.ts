@@ -29,11 +29,6 @@ export async function POST(req: Request) {
 	try {
 		await connectDB();
 
-		// Log specific session user info
-		console.log("User ID:", session.user.id);
-		console.log("User email:", session.user.email);
-		console.log("User name:", session.user.firstName);
-
 		const formData = await req.formData();
 		const front = formData.get("front") as File;
 		const back = formData.get("back") as File;
@@ -83,36 +78,22 @@ export async function POST(req: Request) {
 
 		if (session.user.id) {
 			user = await User.findById(session.user.id);
-			console.log("Lookup by ID result:", user ? "Found" : "Not found");
 		}
 
 		// If not found by ID, try email
 		if (!user && session.user.email) {
 			user = await User.findOne({ email: session.user.email });
-			console.log(
-				"Lookup by email result:",
-				user ? "Found" : "Not found"
-			);
 		}
 
 		// If still not found, try uniqueId
 		if (!user && session.user.uniqueId) {
 			user = await User.findOne({ uniqueId: session.user.uniqueId });
-			console.log(
-				"Lookup by uniqueId result:",
-				user ? "Found" : "Not found"
-			);
 		}
 
 		if (!user) {
 			return NextResponse.json(
 				{
 					error: "User not found",
-					sessionInfo: {
-						id: session.user.id,
-						email: session.user.email,
-						uniqueId: session.user.uniqueId,
-					},
 				},
 				{ status: 404 }
 			);
@@ -125,10 +106,6 @@ export async function POST(req: Request) {
 				{ status: 400 }
 			);
 		}
-
-		console.log(
-			`Comparing extracted NIC: ${extractedNIC} with user NIC: ${user.nic}`
-		);
 
 		if (user.nic !== extractedNIC) {
 			return NextResponse.json(
@@ -144,7 +121,6 @@ export async function POST(req: Request) {
 
 		return NextResponse.json({ verified: true, level: 2 }, { status: 200 });
 	} catch (error) {
-		console.error("NIC verification error:", error);
 		return NextResponse.json(
 			{
 				error: "NIC verification failed",

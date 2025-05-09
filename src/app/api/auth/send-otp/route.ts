@@ -36,8 +36,12 @@ export async function POST(req: Request) {
 		return new Response(JSON.stringify({ message: "OTP sent" }), {
 			status: 200,
 		});
-	} catch (error: any) {
-		console.error(error);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			console.error("Error sending OTP:", error.message);
+		} else {
+			console.error("Error sending OTP:", error);
+		}
 		return new Response(JSON.stringify({ error: "Failed to send OTP" }), {
 			status: 500,
 		});

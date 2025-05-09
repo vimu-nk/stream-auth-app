@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 			{ status: 200 }
 		);
 	} catch (err) {
-		console.error("Error marking as read:", err);
+		console.error("Error in POST /notifications/mark-read:", err);
 		return new Response(JSON.stringify({ error: "Server error" }), {
 			status: 500,
 		});

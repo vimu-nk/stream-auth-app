@@ -179,6 +179,9 @@ laying the foundation for future features like:
 -   Introduced `AuthCredentialProvider` using React Context to securely store user login credentials after successful authentication
 -   Wrapped app layout with `AuthCredentialProvider` to support global access
 -   Automatically re-signs user via `signIn("credentials")` after successful NIC verification using stored credentials
+-   Auto re-login after successful NIC verification using saved credentials.
+-   Updated NIC verification API to return a flag (`autoReLogin`) for triggering re-login.
+-   Enhanced `NICVerificationPanel` to handle re-login automatically.
 
 ### Fixed
 

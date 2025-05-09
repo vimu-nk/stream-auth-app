@@ -76,7 +76,12 @@ export default async function handler(
 		user.verificationLevel = 2;
 		await user.save();
 
-		return res.status(200).json({ verified: true, level: 2 });
+		// Trigger auto re-login after successful verification
+		return res.status(200).json({
+			verified: true,
+			level: 2,
+			autoReLogin: true, // Flag to indicate re-login is needed
+		});
 	} catch {
 		return res.status(500).json({ error: "NIC verification failed" });
 	} finally {

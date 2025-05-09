@@ -18,7 +18,9 @@ export default function AddressPicker({ onAddressSelect }: AddressPickerProps) {
 	const [center] = useState({ lat: 7.8731, lng: 80.7718 });
 	const [markerPosition, setMarkerPosition] = useState(center);
 	const mapRef = useRef<google.maps.Map | null>(null);
-	const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null); // Refers to AdvancedMarkerElement
+	const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(
+		null
+	); // Refers to AdvancedMarkerElement
 
 	useEffect(() => {
 		if (!isLoaded || !mapRef.current) return;
@@ -43,21 +45,17 @@ export default function AddressPicker({ onAddressSelect }: AddressPickerProps) {
 		const lng = e.latLng.lng();
 		setMarkerPosition({ lat, lng });
 
-		console.log("Marker clicked at:", lat, lng);
-
 		try {
 			const res = await fetch(
 				`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
 			);
 			const data = await res.json();
-			console.log("Geocode response:", data);
 
 			const address = data.results?.[0]?.formatted_address || "";
-			console.log("Extracted address:", address);
 
 			onAddressSelect(address);
-		} catch (error) {
-			console.error("Error fetching address from Google Maps:", error);
+		} catch {
+			// Handle error silently or with a user-friendly message
 		}
 	};
 

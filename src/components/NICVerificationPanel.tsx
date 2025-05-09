@@ -63,8 +63,6 @@ export default function NICVerificationPanel({
 		formData.append("back", backFile);
 
 		try {
-			console.log("Submitting verification with session:", session.user);
-
 			const response = await fetch("/api/verification/upload-nic", {
 				method: "POST",
 				body: formData,
@@ -86,30 +84,18 @@ export default function NICVerificationPanel({
 				);
 				setMessageType("success");
 
-				// Log credentials for debugging (remove in production)
-				console.log(
-					"Re-signing in with credentials available:",
-					!!identifier,
-					!!password
-				);
-
-				// Make sure we have credentials before attempting to re-sign in
-				if (identifier && password) {
+				if (data.autoReLogin && identifier && password) {
 					try {
-						// First set a flag to indicate we're in the re-signin process
-						setUploading(true); // Keep the UI showing "loading" state
+						setUploading(true);
 						setMessage(
 							"Verification successful! Refreshing your session..."
 						);
-
-						// First log out the user
 						await signIn("credentials", {
 							identifier,
 							password,
-							redirect: false, // Prevent redirect to avoid page reload
+							redirect: false,
 						});
-
-						// This will redirect to dashboard with a fresh session
+						window.location.reload(); // Ensure session updates
 					} catch (error) {
 						console.error(
 							"Error during authentication refresh:",
@@ -118,13 +104,10 @@ export default function NICVerificationPanel({
 						setMessage(
 							"Verification successful, but session refresh failed. Please log out and log in again."
 						);
+					} finally {
 						setUploading(false);
 					}
 				} else {
-					// No credentials available
-					console.warn(
-						"No auth credentials available for auto re-sign in"
-					);
 					setMessage(
 						"Verification successful! Please log out and log in again to see the changes."
 					);
@@ -145,7 +128,6 @@ export default function NICVerificationPanel({
 			if (frontFileInput) frontFileInput.value = "";
 			if (backFileInput) backFileInput.value = "";
 		} catch (error) {
-			console.error("Verification error:", error);
 			setMessage(
 				error instanceof Error ? error.message : "Upload failed"
 			);

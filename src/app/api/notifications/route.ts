@@ -17,8 +17,7 @@ export async function GET() {
 			userId: session.user.id,
 		}).sort({ createdAt: -1 });
 		return new Response(JSON.stringify(notifications), { status: 200 });
-	} catch (err) {
-		console.error("Error fetching notifications:", err);
+	} catch {
 		return new Response(JSON.stringify({ error: "Server error" }), {
 			status: 500,
 		});

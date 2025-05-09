@@ -75,8 +75,7 @@ export async function POST(req: Request) {
 			JSON.stringify({ message: "Registration completed successfully" }),
 			{ status: 200 }
 		);
-	} catch (err: unknown) {
-		console.error(err);
+	} catch {
 		return new Response(JSON.stringify({ error: "Server Error" }), {
 			status: 500,
 		});
